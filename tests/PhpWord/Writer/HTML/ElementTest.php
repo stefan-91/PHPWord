@@ -170,14 +170,27 @@ class ElementTest extends \PHPUnit\Framework\TestCase
     {
         $expected1 = 'List item run 1';
         $expected2 = 'List item run 1 in bold';
-
+        
         $phpWord = new PhpWord();
         $section = $phpWord->addSection();
 
         $listItemRun = $section->addListItemRun(0, null, 'MyParagraphStyle');
         $listItemRun->addText($expected1);
-        $listItemRun->addText($expected2, array('bold' => true));
-
+        
+        // My mock
+        $fontStyleMock = $this->createMock('\PhpOffice\PhpWord\Style\Font');
+        
+        $fontStyleMock->expects($this->once())
+        ->method('isBold')
+        ->will($this->returnValue(true));
+        
+        $fontStyleMock->expects($this->once())
+        ->method('getColor')
+        ->will($this->returnValue('FF0000'));
+        
+        $listItemRun->addText($expected2, $fontStyleMock);
+        
+        // Create writer
         $htmlWriter = new HTML($phpWord);
         $content = $htmlWriter->getContent();
 
@@ -188,6 +201,34 @@ class ElementTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals($expected2, $dom->getElementsByTagName('p')->item(1)->textContent);
     }
 
+    /**
+     * ListItemRun with Custom Style (Integration test)
+     */
+    public function testListItemRunStyle()
+    {
+        $expected = 'List item run 1 in bold';
+        
+        $phpWord = new PhpWord();
+        $section = $phpWord->addSection();
+        
+        $listItemRun = $section->addListItemRun(0, null, 'MyParagraphStyle');
+        $listItemRun->addText($expected);
+        
+        $fontStyle = new \PhpOffice\PhpWord\Style\Font();
+        $fontStyle->setBold(true);        
+        $fontStyle->setColor('FF0000');
+        
+        $listItemRun->addText($expected, $fontStyle);
+        
+        $htmlWriter = new HTML($phpWord);
+        $content = $htmlWriter->getContent();
+        
+        $dom = new \DOMDocument();
+        $dom->loadHTML($content);
+        
+        $this->assertEquals($expected, $dom->getElementsByTagName('p')->item(0)->textContent);
+    }    
+    
     /**
      * Tests writing table with layout
      */
